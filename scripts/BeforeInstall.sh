@@ -7,9 +7,9 @@ docker pull 204065533127.dkr.ecr.ap-northeast-1.amazonaws.com/jupyter:latest
 docker pull 204065533127.dkr.ecr.ap-northeast-1.amazonaws.com/ngrok:latest
 docker pull mysql:latest
 docker pull redis:latest
-cd /home/ec2-user/deploy/Chatbot_Project_cc103_release/Chatbot_Dev_cc103/code
+cd /home/ec2-user/deploy/Chatbot_Dev_cc103/code
 aws s3 cp s3://cc103-deploy-certification/secret_key.txt .
-cd /home/ec2-user/deploy/Chatbot_Project_cc103_release/Chatbot_Line_cc103/docker_vol/cert-letsencrypt/
+cd /home/ec2-user/deploy/Chatbot_Line_cc103/docker_vol/cert-letsencrypt/
 aws s3 cp s3://cc103-deploy-certification/cert-letsencrypt/cc103awsbot.crt .
 aws s3 cp s3://cc103-deploy-certification/cert-letsencrypt/cc103awsbot.key .
 exit 0
