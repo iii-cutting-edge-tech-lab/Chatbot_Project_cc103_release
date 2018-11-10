@@ -13,9 +13,7 @@ services:
       - ./Chatbot_Dev_cc103/mysql_init:/docker-entrypoint-initdb.d/
 
   api:
-    build: 
-      context: ./Chatbot_Dev_cc103/dockerfile
-      dockerfile: dockerfile-api
+    image: 204065533127.dkr.ecr.ap-northeast-1.amazonaws.com/api
     container_name: chatbot_api
     user: root
     environment:
@@ -41,9 +39,7 @@ services:
       - ./Chatbot_Line_cc103/redis/data:/data
 #      - ./Chatbot_Line/redis/redis.config:/usr/local/etc/redis/redis.conf
   jupyter-tutorial:
-    build: 
-      context: ./Chatbot_Line_cc103/dockerfile
-      dockerfile: dockerfile-jupyter
+    image: 204065533127.dkr.ecr.ap-northeast-1.amazonaws.com/jupyter
     container_name: chatbot_line
     depends_on: 
       - api
