@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -ex
 echo "stop service container "
 cd /home/ec2-user/deploy
 docker-compose down --rmi all
