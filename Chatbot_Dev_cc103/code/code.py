@@ -3,24 +3,11 @@
 
 # In[1]:
 
-#在jupyter下安裝Flask-WTF套件
-#get_ipython().system('pip install Flask-WTF')
-
-
-# In[2]:
-
 
 #製作flask環境
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, render_template
 import datetime
 import pymysql
-
-#網頁使用到的套件
-from flask import Flask, render_template
-from flask_wtf import FlaskForm
-from wtforms import StringField, SubmitField
-from wtforms.validators import DataRequired
-
 
 #增加等待時間，為了整合的需要所新增的 
 import time
@@ -39,40 +26,7 @@ conn = pymysql.connect(host='db', port=3306, user='root', passwd='iii', db='chat
 cur = conn.cursor()
 
 
-# In[3]:
-
-
-class MyForm(FlaskForm):
-    name = StringField("姓名 : ",validators=[DataRequired()])
-    submit = SubmitField("確認")
-
-
-# In[4]:
-
-
-@app.route('/')
-def index():
-    return render_template("index.html")
-
-
-# In[5]:
-
-
-@app.route('/loginForm',methods=['GET','POST'])
-def login():
-    form = MyForm()
-    if form.validate_on_submit():
-        outStr = "<h1>輸入:{}".format(form.name.data)+"<BR>"
-        outStr += "123:<BR>"
-        for item in form.name.data:
-            outStr += item +"<BR>"
-        outStr += "</h1>"
-        return outStr
-    else:
-        return render_template('submit.html',runForm=form)
-
-
-# In[6]:
+# In[2]:
 
 
 #接口功能：對資料庫新增使用者資料
@@ -135,7 +89,7 @@ def add_user():
     return jsonify(result)
 
 
-# In[7]:
+# In[3]:
 
 
 #接口功能：檢視指定使用者資訊
@@ -169,7 +123,7 @@ def read_user(userid):
         return jsonify(result)
 
 
-# In[8]:
+# In[4]:
 
 
 #接口功能：檢視所有使用者資訊
@@ -205,7 +159,7 @@ def read_users():
     return jsonify(answer)
 
 
-# In[9]:
+# In[5]:
 
 
 #接口功能：更新指定使用者資訊
@@ -254,7 +208,7 @@ def update_user(userid):
     return jsonify(result)
 
 
-# In[10]:
+# In[6]:
 
 
 #接口功能：刪除user資訊
@@ -290,7 +244,7 @@ def delete_user(userid):
     return jsonify(result)  
 
 
-# In[11]:
+# In[7]:
 
 
 #接口功能：新增menu資料
@@ -339,7 +293,7 @@ def add_menu():
     
 
 
-# In[12]:
+# In[8]:
 
 
 #接口功能：檢視所有menus資訊
@@ -370,7 +324,7 @@ def read_menus():
     return jsonify(answer)
 
 
-# In[13]:
+# In[9]:
 
 
 #接口功能：刪除menu資訊
@@ -406,7 +360,7 @@ def delete_menu(menuid):
     return jsonify(result)  
 
 
-# In[14]:
+# In[10]:
 
 
 #唯一的變數是擷取的SQL table不同
@@ -450,7 +404,7 @@ def test(table_type):
     return jsonify(result)
 
 
-# In[15]:
+# In[11]:
 
 
 #接口功能：檢視question sa的資料
@@ -460,6 +414,7 @@ def test_sa():
     return test('assoc_sa_questions')
 
 @app.route('/question/sysops',methods=['GET'])
+
 def test_sys():
     return test('assoc_sys_questions')
 
@@ -468,7 +423,40 @@ def test_dev():
     return test('assoc_dev_questions')
 
 
-# In[16]:
+# In[12]:
+
+
+@app.route('/web_user_info',methods=['POST'])
+def add_web_user_info():
+    #抓跑function時的時間
+    time = datetime.datetime.utcnow().strftime("%Y%m%d%H%M")
+    #將傳過來的json檔擷取出來
+    a = request.get_json()
+    #方便錯誤排除
+    cur.execute('SELECT MAX(user_id) FROM chatbot_db.user_back ' )
+    tmp = cur.fetchone()
+    if tmp[0] is None :
+        user_id = 1
+    else :
+        user_id = tmp[0] +1
+    
+    insertsql=("INSERT INTO chatbot_db.user_back VALUES ( %s,%s,%s,%s ,%s,%s,%s)")
+    val = ( str(user_id) ,
+                a['user_name'],
+                a['user_phone'],
+                a['user_email'],
+                a['user_context'],
+                a['user_bool'],
+                time)
+    cur.execute(insertsql , val)
+    #將資料送進資料庫中
+    conn.commit()
+    result =  { "status_describe":"success add feedback" }
+    
+    return jsonify(result)
+
+
+# In[13]:
 
 
 import logging

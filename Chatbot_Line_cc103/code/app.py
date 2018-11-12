@@ -19,6 +19,9 @@
 # In[2]:
 
 
+#正式上線時要放在dockerfile中
+#get_ipython().system('pip install redis')
+#get_ipython().system('pip install line-bot-sdk')
 
 
 # In[3]:
@@ -36,8 +39,8 @@ import redis
 #製作redis連線
 redis = redis.Redis(
     #redis container的host name
-		host='redis',
-		port=6379,
+    host='redis',
+    port=6379,
     #預設沒密碼
     password=None,
     #給格式
@@ -49,9 +52,9 @@ redis = redis.Redis(
 import os 
 
 #擷取EC2裡面的ip位置，主要用於test.py
-#ip_location=os.environ.get('IPA_ENV')
-#我的ip，請在改成自己的
-ip_location='chatbot_api'
+ip_location=os.environ.get('IPA_ENV')
+#請改成自己律定API Server的container name
+#ip_location='chatbot_api'
 
 
 # In[4]:
@@ -145,10 +148,11 @@ def hello():
 '''
 
     4.撰寫用戶關注事件發生時的動作
-        1. 取得用戶個資，並存回伺服器
-        2. 把先前製作好的自定義菜單，與用戶做綁定
-        3. 回應用戶，歡迎用的文字消息與圖片消息
-        4. 製作用戶的redis資料
+        1. 製作並定義旋轉門選單、flexbubble樣板選單
+        2. 取得用戶個資，並存回伺服器
+        3. 把先前製作好的自定義菜單，與用戶做綁定
+        4. 回應用戶，歡迎用的文字消息、圖片、及旋轉門選單
+        5. 製作用戶的redis資料
 
 '''
 
@@ -158,46 +162,529 @@ from linebot.models import (
     TextSendMessage, TemplateSendMessage,
     TextMessage, ButtonsTemplate,
     PostbackTemplateAction, MessageTemplateAction,
-    URITemplateAction,ImageSendMessage
+    URITemplateAction,ImageSendMessage,CarouselTemplate,CarouselColumn,
+    FlexSendMessage,BubbleContainer
 )
 
 # 載入requests套件
 import requests
 
 
+# In[7]:
+
+
 #宣告並設定推播的 button_template_message (全域變數)
-button_template_message = ButtonsTemplate(
-                                        thumbnail_image_url='https://%s/images/aws_icon.png' %server_url,
-                                        title='Menu',
-                                        text='歡迎使用cc103_考古題聊天機器人\n請使用下方功能選單\n或是按下方按鈕',
-                                        image_size="cover",
-                                        actions=[
-                                          {
-                                            "type": "uri",
-                                            "label": "Web 網址",
-                                            "uri": "https://www.google.com",
-                                            "data": "Data"
-                                          },
-                                          {
-                                            "type": "message",
-                                            "label": "AWS",
-                                            "text": "AWS",
-                                            "data": "Data"
-                                          },
-                                          {
-                                            "type": "message",
-                                            "label": "輕鬆一下",
-                                            "text": "輕鬆一下",
-                                            "data": "Data"
-                                          },   
-                                          {
-                                            "type": "message",
-                                            "label": "答題情形",
-                                            "text": "detail",
-                                            "data": "Data"
-                                          }
-                                        ],
-                                    )
+button_template_message = CarouselTemplate(
+            columns=[
+                CarouselColumn(
+                    thumbnail_image_url="https://%s/images/BingHongCourse.gif" %server_url,
+                    title='歡迎使用AWS考古題聊天機器人\n請使用下方功能選單\n或是按下方按鈕',
+                    text='CC_TEAM 功能清單',
+                    actions=[
+                        URITemplateAction(
+                            label='網工班專題GitHub',
+                            uri='https://github.com/iii-cutting-edge-tech-lab/Chatbot_Project_cc103'
+                        ),
+                        URITemplateAction(
+                            label='意見回饋',
+                            uri="https://www.google.com" 
+                        ),
+                        URITemplateAction(
+                            label='Tibame 線上課程',
+                            uri="https://www.tibame.com/"
+                        )
+                    ]
+                ),
+                CarouselColumn(
+                    thumbnail_image_url="https://%s/images/trends.gif" %server_url,
+                    title='歡迎使用AWS考古題聊天機器人\n請使用下方功能選單\n或是按下方按鈕',
+                    text='CC_TEAM 功能清單',
+                    actions=[
+                        MessageTemplateAction(
+                            label='AWS白皮書與認證',
+                            text='AWS'
+                        ),
+                        MessageTemplateAction(
+                            label='take a break',
+                            text='輕鬆一下'
+                        ),
+                        MessageTemplateAction(
+                            label='答題情形',
+                            text="detail"
+                        )
+                    ]
+                ),
+                CarouselColumn(
+                    thumbnail_image_url="https://%s/images/column3.gif" %server_url,
+                    title='歡迎使用AWS考古題聊天機器人\n請使用下方功能選單\n或是按下方按鈕',
+                    text='CC_TEAM 功能清單',
+                    actions=[
+                        PostbackTemplateAction(
+                            label='AWS相關課程',
+                            data="type=AWS"
+                        ),
+                        PostbackTemplateAction(
+                            label='網路工程課程',
+                            data="type=Internet"
+                        ),
+                        PostbackTemplateAction(
+                            label='Linux 課程',
+                            data="type=Linux"
+                        )
+                    ]
+                )]
+            )
+
+
+# In[8]:
+
+
+#宣告並設定推播的 flex bubble (全域變數)
+#圖片的URL要置換成絕對路徑，或是放在S3的絕對路徑
+flexBubbleContainerJsonString_AWS ="""
+{
+    "type": "bubble",
+    "direction": "ltr",
+    "header": {
+      "type": "box",
+      "layout": "horizontal",
+      "contents": [
+        {
+          "type": "text",
+          "text": "Tibame 李秉鴻 老師 課程",
+          "size": "md",
+          "align": "center",
+          "gravity": "center",
+          "weight": "bold",
+          "color": "#000000"
+        }
+      ]
+    },
+    "hero": {
+      "type": "image",
+      "url": "https://i.imgur.com/UeEqrDb.jpg",
+      "align": "center",
+      "gravity": "center",
+      "size": "full",
+      "aspectRatio": "20:13",
+      "aspectMode": "cover"
+    },
+    "body": {
+      "type": "box",
+      "layout": "horizontal",
+      "spacing": "md",
+      "contents": [
+        {
+          "type": "box",
+          "layout": "vertical",
+          "flex": 1,
+          "contents": [
+            {
+              "type": "image",
+              "url": "https://i.imgur.com/EGiosq8.jpg",
+              "gravity": "bottom",
+              "size": "sm",
+              "aspectRatio": "4:3",
+              "aspectMode": "cover"
+            },
+            {
+              "type": "image",
+              "url": "https://i.imgur.com/vZyJhVq.png",
+              "margin": "md",
+              "size": "sm",
+              "aspectRatio": "4:3",
+              "aspectMode": "cover"
+            }
+          ]
+        },
+        {
+          "type": "box",
+          "layout": "vertical",
+          "flex": 2,
+          "contents": [
+            {
+              "type": "text",
+              "text": "李秉鴻 老師 簡介",
+              "flex": 1,
+              "size": "xs",
+              "align": "start",
+              "gravity": "center",
+              "weight": "bold",
+              "color" : "#99ccff",
+              "action": {
+                "type": "message",
+                "label": "BingHongLiIntro",
+                "text": "我想看李秉鴻老師的簡介"
+              }
+            },
+            {
+              "type": "separator"
+            },
+            {
+              "type": "text",
+              "text": "AWS雲端技術入門保證班",
+              "flex": 2,
+              "size": "xs",
+              "align": "start",
+              "gravity": "center",
+              "weight": "bold",
+              "color" : "#99ccff",
+              "action": {
+                "type": "uri",
+                "label": "awscloud",
+                "uri": "https://www.tibame.com/offline/aws-platform"
+              }
+            },
+            {
+              "type": "separator"
+            },
+            {
+              "type": "text",
+              "text": "零基礎LINE對話機器人實作班",
+              "flex": 2,
+              "size": "xs",
+              "align": "start",
+              "gravity": "center",
+              "weight": "bold",
+              "color" : "#99ccff",
+              "action": {
+                "type": "uri",
+                "label": "LineChatBot",
+                "uri": "https://www.tibame.com/offline/linebot"
+              }
+            },
+            {
+              "type": "separator"
+            },
+            {
+              "type": "text",
+              "text": "AWS 區塊鏈平台與智能合約 DApp 開發實務",
+              "flex": 1,
+              "size": "xs",
+              "align": "start",
+              "gravity": "center",
+              "weight": "bold",
+              "color" : "#99ccff",
+              "action": {
+                "type": "uri",
+                "label": "BlockChain",
+                "uri": "https://www.tibame.com/offline/aws-blockchain"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "footer": {
+      "type": "box",
+      "layout": "horizontal",
+      "contents": [
+        {
+          "type": "button",
+          "action": {
+            "type": "uri",
+            "label": "More",
+            "uri": "https://github.com/BingHongLi"
+          },
+          "gravity": "center"
+        }
+      ]
+    },
+    "styles": {
+      "hero": {
+        "backgroundColor": "#160D3A"
+      }
+    }
+  }"""
+
+
+# In[9]:
+
+
+#宣告並設定推播的 flex bubble (全域變數)
+#圖片的URL要置換成絕對路徑，或是放在S3的絕對路徑
+flexBubbleContainerJsonString_Linux ="""
+{
+    "type": "bubble",
+    "header": {
+      "type": "box",
+      "layout": "horizontal",
+      "contents": [
+        {
+          "type": "text",
+          "text": "南風&牛鈍 老師 課程 ",
+          "size": "md",
+          "align": "center",
+          "weight": "bold",
+          "color": "#000000"
+        }
+      ]
+    },
+    "hero": {
+      "type": "image",
+      "url": "https://i.imgur.com/GtS1TYZ.png",
+      "size": "full",
+      "align": "center",
+      "aspectRatio": "20:13",
+      "aspectMode": "cover"
+    },
+    "body": {
+      "type": "box",
+      "layout": "horizontal",
+      "spacing": "md",
+      "contents": [
+        {
+          "type": "box",
+          "layout": "vertical",
+          "flex": 1,
+          "contents": [
+            {
+              "type": "image",
+              "url": "https://i.imgur.com/1vnoIsF.jpg",
+              "gravity": "bottom",
+              "size": "sm",
+              "aspectRatio": "4:3",
+              "aspectMode": "cover"
+            },
+            {
+              "type": "image",
+              "url": "https://i.imgur.com/jzYmxW6.jpg",
+              "margin": "md",
+              "size": "sm",
+              "aspectRatio": "4:3",
+              "aspectMode": "cover"
+            }
+          ]
+        },
+        {
+          "type": "box",
+          "layout": "vertical",
+          "flex": 2,
+          "contents": [
+            {
+              "type": "text",
+              "text": "陳建村 老師 簡介",
+              "flex": 1,
+              "size": "sm",
+              "align": "center",
+              "gravity": "top",
+              "weight": "bold",
+              "color" : "#99ccff",
+              "action": {
+                "type": "message",
+                "label": "southwind",
+                "text": "我想看陳建村老師的簡介"
+              }
+            },
+            {
+              "type": "separator"
+            },
+            {
+              "type": "text",
+              "text": "SQL資料庫語言",
+              "flex": 2,
+              "size": "sm",
+              "align": "center",
+              "gravity": "center",
+              "weight": "bold",
+              "color" : "#99ccff",
+              "action": {
+                "type": "uri",
+                "uri": "https://www.tibame.com/offline/sql"
+              }
+            },
+            {
+              "type": "separator"
+            },
+            {
+              "type": "text",
+              "text": "黃智鑠 老師 簡介",
+              "flex": 2,
+              "size": "sm",
+              "align": "center",
+              "gravity": "center",
+              "weight": "bold",
+              "color" : "#99ccff",
+              "action": {
+                "type": "message",
+                "label": "newton",
+                "text": "我想看黃智鑠老師的簡介"
+              }
+            },
+            {
+              "type": "separator"
+            },
+            {
+              "type": "text",
+              "text": "黃智鑠 老師 教學網頁",
+              "flex": 1,
+              "size": "sm",
+              "align": "center",
+              "gravity": "bottom",
+              "weight": "bold",
+              "color" : "#99ccff",
+              "action": {
+                "type": "uri",
+                "uri": "https://www.newton.taipei"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "footer": {
+      "type": "box",
+      "layout": "horizontal",
+      "contents": [
+        {
+          "type": "button",
+          "action": {
+            "type": "uri",
+            "label": "More",
+            "uri": "https://www.tibame.com/goodjob/cloudnet"
+          }
+        }
+      ]
+    }
+}"""
+
+
+# In[10]:
+
+
+#宣告並設定推播的 flex bubble (全域變數)
+#圖片的URL要置換成絕對路徑，或是放在S3的絕對路徑
+flexBubbleContainerJsonString_Internet ="""
+{
+    "type": "bubble",
+    "header": {
+      "type": "box",
+      "layout": "horizontal",
+      "contents": [
+        {
+          "type": "text",
+          "text": "Travis 老師 課程 ",
+          "size": "md",
+          "align": "center",
+          "weight": "bold",
+          "color": "#000000"
+        }
+      ]
+    },
+    "hero": {
+      "type": "image",
+      "url": "https://i.imgur.com/7QLudma.png",
+      "size": "full",
+      "align": "center",
+      "aspectRatio": "20:13",
+      "aspectMode": "cover"
+    },
+    "body": {
+      "type": "box",
+      "layout": "horizontal",
+      "spacing": "md",
+      "contents": [
+        {
+          "type": "box",
+          "layout": "vertical",
+          "flex": 1,
+          "contents": [
+            {
+              "type": "image",
+              "url": "https://i.imgur.com/c9Kg5rh.jpg",
+              "gravity": "bottom",
+              "size": "sm",
+              "aspectRatio": "4:3",
+              "aspectMode": "cover"
+            }
+          ]
+        },
+        {
+          "type": "box",
+          "layout": "vertical",
+          "flex": 2,
+          "contents": [
+            {
+              "type": "text",
+              "text": "戴致禮 老師 簡介",
+              "flex": 1,
+              "size": "sm",
+              "align": "center",
+              "gravity": "center",
+              "weight": "bold",
+              "color" : "#99ccff",
+              "action": {
+                "type": "message",
+                "label": "travis",
+                "text": "我想看戴致禮老師的簡介"
+              }
+            },
+            {
+              "type": "separator"
+            },
+            {
+              "type": "text",
+              "text": "實戰子網路切割",
+              "flex": 2,
+              "size": "sm",
+              "align": "center",
+              "gravity": "center",
+              "weight": "bold",
+              "color" : "#99ccff",
+              "action": {
+                "type": "uri",
+                "uri": "https://www.tibame.com/course/288"
+              }
+            },
+            {
+              "type": "separator"
+            }
+          ]
+        }
+      ]
+    },
+    "footer": {
+      "type": "box",
+      "layout": "horizontal",
+      "contents": [
+        {
+          "type": "button",
+          "action": {
+            "type": "uri",
+            "label": "More",
+            "uri": "https://www.facebook.com/travis.itemba"
+          }
+        }
+      ]
+    }
+  }"""
+
+
+# In[11]:
+
+
+#將bubble類型的json 進行轉換變成 Python可理解之類型物件，並將該物件封裝進 Flex Message中
+#引用套件
+from linebot.models import(
+    FlexSendMessage,BubbleContainer,
+)
+
+import json
+
+#AWS樣板封裝
+bubbleContainer_aws= BubbleContainer.new_from_json_dict(json.loads(flexBubbleContainerJsonString_AWS))
+flexBubbleSendMessage_AWS =  FlexSendMessage(alt_text="李秉鴻 老師 課程", contents=bubbleContainer_aws)
+
+#Linux樣板封裝
+bubbleContainer_linux= BubbleContainer.new_from_json_dict(json.loads(flexBubbleContainerJsonString_Linux))
+flexBubbleSendMessage_Linux =  FlexSendMessage(alt_text="南風及牛鈍 老師 課程", contents=bubbleContainer_linux)
+
+#Internet樣板封裝
+bubbleContainer_internet= BubbleContainer.new_from_json_dict(json.loads(flexBubbleContainerJsonString_Internet))
+flexBubbleSendMessage_Internet =  FlexSendMessage(alt_text="Travis 老師 課程", contents=bubbleContainer_internet)
+
+
+# In[12]:
 
 
 # 告知handler，如果收到FollowEvent，則做下面的方法處理
@@ -225,6 +712,8 @@ def reply_text_and_get_user_profile(event):
     
     # 傳送post對API server新增資料 
     Response=requests.post(Endpoint,headers=Header,data=json.dumps(user_info))
+    
+    #印出Response的資料訊息
     print(Response)
     print(Response.text)
     
@@ -241,20 +730,16 @@ def reply_text_and_get_user_profile(event):
     #再跟老師討論存在redis的值有沒有需要進去mysql
     #給剛加入的用戶初始化Redis資料
     redis.hmset(user_profile.user_id, {'result': 0,"total" : 0,"sa_qid" : 0,"dev_qid" : 0,"sys_qid" : 0})
-    
-    
-    print(Response)
-    print(Response.text)
                          
-    #針對剛加入的用戶回覆文字消息與圖片消息
+    #針對剛加入的用戶回覆文字消息、圖片、旋轉門選單
     reply_message_list = [
-                    TextSendMessage(text="歡迎%s\n感謝您加入cc103_AWS考古題機器人\n使用我來幫助您通過AWS的認證考試吧!\n\n萬一您覺得提醒的次數有點多，您可以在本畫面的聊天室設定選單中，將「提醒」的功能關掉喔！?\n" % (user_profile.display_name) ),    
+                    TextSendMessage(text="歡迎%s\n感謝您加入Tibame AWS 考古題機器人\n使用我來幫助您通過AWS的認證考試吧!\n\n萬一您覺得提醒的次數有點多，您可以在本畫面的聊天室設定選單中，將「提醒」的功能關掉喔！?\n" % (user_profile.display_name) ),    
                     ImageSendMessage(original_content_url='https://%s/images/certificate.jpg' %server_url,
                     preview_image_url='https://%s/images/certificate.jpg' %server_url), 
-                    TemplateSendMessage(alt_text="CC103功能選單，為您服務",template=button_template_message),
+                    TemplateSendMessage(alt_text="Tibame AWS 功能選單，為您服務",template=button_template_message),
                 ] 
     
-    #推送訊息
+    #推送訊息給官方Line
     line_bot_api.reply_message(
         event.reply_token,
         reply_message_list    
@@ -262,14 +747,14 @@ def reply_text_and_get_user_profile(event):
     
 
 
-# In[7]:
+# In[13]:
 
 
 """
     
     5.收到按鈕（postback）的封包後
-        1. 先看是哪種按鈕（question(考試),answer(答覆)）
-        2. 看是哪種類別（sa,sysops,develop）
+        1. 先看是哪種按鈕（question(考試),answer(答覆)，AWS(AWS相關課程)，Internet(網路工程課程)，Linux(Linux課程)）
+        2. 如果是question(考試)或answer(答覆)，會再看是哪種類別（sa,sysops,develop）
         3. 執行所需動作（執行之後的哪一些函式）
         4. 回覆訊息
 
@@ -336,12 +821,29 @@ def handle_post_message(event):
                 event.reply_token,
                 answer_reply_list('sa',data,user_profile)
             )
-      
+            
+    #給按下"AWS相關課程"，"網路工程課程"，"Linux課程"，推播對應的flexBubble
+    elif (data['type']==['AWS']):
+            line_bot_api.reply_message(
+                event.reply_token,
+                flexBubbleSendMessage_AWS
+            )
+    elif (data['type']==['Internet']):
+            line_bot_api.reply_message(
+                event.reply_token,
+                flexBubbleSendMessage_Internet
+            )
+    elif (data['type']==['Linux']):
+            line_bot_api.reply_message(
+                event.reply_token,
+                flexBubbleSendMessage_Linux
+            )
+    #其他的pass
     else:
         pass
 
 
-# In[8]:
+# In[14]:
 
 
 """
@@ -381,61 +883,63 @@ def answer(qtype,qid):
 #做一個回傳考題的函式，擷取變數（考題類別,使用者id,考題id）
 def test(questiontype,user_id,questionid):
     #由於只有100題，所以超過之後回傳一個訊息
-    if (questionid==101):
+    if (questionid=='101'):
         #並將它歸零
-        redis.hset(user_id,questionid,0)
+        redis.hmset(user_id, {'result': 0,"total" : 0,"sa_qid" : 0,"dev_qid" : 0,"sys_qid" : 0})
+        
         #回覆訊息
         reply_message_list = [
         TextSendMessage(text="Congratulation!!!!\nYou already finish 100 question about %s" % (questiontype)),
         ]
         return reply_message_list
-    # question_id沒問題後取得指定的考題資訊
-    a = answer(questiontype,questionid)
-    #這邊使用quick reply的方式，QuickReply算是一種TextSendMessage
-    quickreply = TextSendMessage(
-                text='Choose your answer:',
-                quick_reply=QuickReply(
-                    items=[
-                        QuickReplyButton(
-                            #使用postback action類似按鈕的概念
-                            action=PostbackAction(label="A",
-                                                  #使用了data裝query string的方式，一次裝多個變數
-                                                  #這邊使用true_answer()來幫助取得result的值（判斷對或錯）
-                                                  data="type=answer&question_type=%s&question_id=%s&result=%s" % (questiontype,questionid,true_answer(a,'A')),
-                                                  #按了按鈕之後的會有的回覆
-                                                  text='choose:A'
-                                                 )
-                        ),
-                        QuickReplyButton(
-                            action=PostbackAction(label="B",
-                                                  data="type=answer&question_type=%s&question_id=%s&result=%s" % (questiontype,a['question_id'],true_answer(a,'B')),
-                                                  text='choose:B'
-    
-                                                 )
-                        ),
-                        QuickReplyButton(
-                            action=PostbackAction(label="C",
-                                                  data="type=answer&question_type=%s&question_id=%s&result=%s" % (questiontype,a['question_id'],true_answer(a,'C')),
-                                                  text='choose:C'
-                                                 )
-                        ),
-                        QuickReplyButton(
-                            action=PostbackAction(label="D",
-                                                  data="type=answer&question_type=%s&question_id=%s&result=%s" % (questiontype,a['question_id'],true_answer(a,'D')),
-                                                  text='choose:D'
-                                                 )
-                        )
-                    ]))
-    #包裝一個回傳的list
-    reply_message_list = [
-        # 考題的題目
-        TextSendMessage(text=a["question_content"]),
-        # 考題的選項
-        TextSendMessage(text=a["answer1_content"]+"\n\n"+a["answer2_content"]+"\n\n"+a["answer3_content"]+"\n\n"+a["answer4_content"]),
-        #回傳quick reply選單
-        quickreply    
-    ]
-    return reply_message_list
+    else:
+        # question_id沒問題後取得指定的考題資訊
+        a = answer(questiontype,questionid)
+        #這邊使用quick reply的方式，QuickReply算是一種TextSendMessage
+        quickreply = TextSendMessage(
+                    text='Choose your answer:',
+                    quick_reply=QuickReply(
+                        items=[
+                            QuickReplyButton(
+                                #使用postback action類似按鈕的概念
+                                action=PostbackAction(label="A",
+                                                      #使用了data裝query string的方式，一次裝多個變數
+                                                      #這邊使用true_answer()來幫助取得result的值（判斷對或錯）
+                                                      data="type=answer&question_type=%s&question_id=%s&result=%s" % (questiontype,questionid,true_answer(a,'A')),
+                                                      #按了按鈕之後的會有的回覆
+                                                      text='choose:A'
+                                                     )
+                            ),
+                            QuickReplyButton(
+                                action=PostbackAction(label="B",
+                                                      data="type=answer&question_type=%s&question_id=%s&result=%s" % (questiontype,a['question_id'],true_answer(a,'B')),
+                                                      text='choose:B'
+
+                                                     )
+                            ),
+                            QuickReplyButton(
+                                action=PostbackAction(label="C",
+                                                      data="type=answer&question_type=%s&question_id=%s&result=%s" % (questiontype,a['question_id'],true_answer(a,'C')),
+                                                      text='choose:C'
+                                                     )
+                            ),
+                            QuickReplyButton(
+                                action=PostbackAction(label="D",
+                                                      data="type=answer&question_type=%s&question_id=%s&result=%s" % (questiontype,a['question_id'],true_answer(a,'D')),
+                                                      text='choose:D'
+                                                     )
+                            )
+                        ]))
+        #包裝一個回傳的list
+        reply_message_list = [
+            # 考題的題目
+            TextSendMessage(text=a["question_content"]),
+            # 考題的選項
+            TextSendMessage(text=a["answer1_content"]+"\n\n"+a["answer2_content"]+"\n\n"+a["answer3_content"]+"\n\n"+a["answer4_content"]),
+            #回傳quick reply選單
+            quickreply    
+        ]
+        return reply_message_list
 
 """
 
@@ -462,7 +966,7 @@ def answer_reply_list(questiontype,data,user_profile):
         # 看是答對或答錯
         TextSendMessage(text=reply),
         # 考題詳解
-        TextSendMessage(text=a["true_answer_decribe_content"]+"\n\n"),
+        TextSendMessage(text=a["true_answer_decribe_content"]),
         # 詳解的連結
         TextSendMessage(text=a["external_link"])
         ]
@@ -484,12 +988,12 @@ def true_answer(a,answer):
         return 'False'
 
 
-# In[9]:
+# In[15]:
 
 
 '''
     6.針對message event的設定
-    當用戶發出文字消息時，判斷文字內容是否包含一些關鍵，
+    當用戶發出文字消息時，判斷文字內容是否包含一些關鍵字，
     若有，則回傳客製化訊息
     若無，則回傳預設訊息。
 
@@ -503,7 +1007,7 @@ def handle_message(event):
     # 由於在quick_reply的地方，在按鈕給了text針對按鈕的text不予回應
     if (event.message.text.find('choose:')!= -1):
         pass
-    # 當用戶輸入detail時判斷成立
+    # 結合旋轉門選單中的"答題情形"，會有文字detail的輸入，當符合detail字串時判斷成立
     elif (event.message.text.find('detail')!= -1):
         # sa回答到哪題
         sa_qid = redis.hget(user_profile,"sa_qid")
@@ -518,7 +1022,7 @@ def handle_message(event):
         # 將上面的變數包裝起來                          
         reply_list = [
             TextSendMessage(text="各類回答紀錄\nsa:%s/100\ndeveloper:%s/100\nsysops:%s/100" % (sa_qid,sys_qid,dev_qid) ),
-            TextSendMessage(text="總共答對 (%s)題\n總共回答 (%s)題\n" % (correct,total))
+            TextSendMessage(text="總共答對 (%s)題\n總共回答 (%s)題" % (correct,total))
         ]
         # 回覆訊息
         line_bot_api.reply_message(
@@ -527,7 +1031,7 @@ def handle_message(event):
             )
     # 當用戶輸入AWS時判斷成立
     elif (event.message.text.find('AWS')!= -1):
-        # 提供AWS白皮書網址及AWS培訓語認證網址
+        # 提供AWS白皮書網址及AWS培訓與認證網址
         url1='https://aws.amazon.com/tw/whitepapers/'
         url2='https://aws.amazon.com/tw/training/'
         # 將上面的變數包裝起來
@@ -541,22 +1045,82 @@ def handle_message(event):
             reply_list
             )
         
+     # 結合旋轉門選單中的"AWS相關課程"，進到flexbubble選單，按下"李秉鴻老師簡介"，會有文字"我想看李秉鴻老師的簡介"的輸入，當符合字串時判斷成立
+    elif (event.message.text.find('我想看李秉鴻老師的簡介')!= -1):
+        # 回覆訊息
+        line_bot_api.reply_message(
+            event.reply_token,
+            TextSendMessage(text="李秉鴻老師:\n現於中國一新創企業擔任系統架構師，曾任大型上櫃資訊公司之技術副理、新創企業之雲服務架構工程師、日商大數據暨雲服務後端工程師，擅長雲端應用開發與研究，並有多項雲服務專案開發經驗，獲有AWS Solution Architect - Associate及AWS SysOps Administarator - Associate等國際技術認證。")
+            )
+    
+    # 結合旋轉門選單中的"Linux課程"，進到flexbubble選單，按下"陳建村老師簡介"，會有文字"我想看陳建村老師的簡介"的輸入，當符合字串時判斷成立
+    elif (event.message.text.find('我想看陳建村老師的簡介')!= -1):
+        # 回覆訊息
+        line_bot_api.reply_message(
+            event.reply_token,
+            TextSendMessage(text="陳建村老師:\n自2010年起擔任公私立大學資管及資工系兼任講師、坊間培訓中心講師、線上遊戲公司系統顧問，兼具產業界技術實力及教學熱忱，教學設計生動活潑，授課採用心智圖(圖像記憶法)加速學員學習與記憶，關心學生學習狀況，因此深受學生喜愛，教學成果卓越，尤其SQL語法課程與OpenSource實作課程都是他的教學強項。")
+            )
+    
+    # 結合旋轉門選單中的"Linux課程"，進到flexbubble選單，按下"黃智鑠老師簡介"，會有文字"我想看黃智鑠老師的簡介"的輸入，當符合字串時判斷成立
+    elif (event.message.text.find('我想看黃智鑠老師的簡介')!= -1):
+        line_bot_api.reply_message(
+            event.reply_token,
+            TextSendMessage(text="黃智鑠老師:\n超過10年Linux中小型企業Open Source解決方案的推動的實務經驗、與多年的教學經驗，專長Linux系統建置、管理、SNMP通訊協定、Linux網路管理，重要的專案與經歷如下：中壢資策會兼任講師、教育網路中心 伺服器管理、HP OpenView 網路系統管理系統 建置、中小企業open source solution建置/管理、IBM Tivoli 網路系統管理系統 建置！")
+            )
         
-    elif (event.message.text.find('more')!= -1):        
+    # 結合旋轉門選單中的"網路工程課程"，進到flexbubble選單，按下"戴致禮老師簡介"，會有文字"我想看戴致禮老師的簡介"的輸入，當符合字串時判斷成立
+    elif (event.message.text.find('我想看戴致禮老師的簡介')!= -1):
+        line_bot_api.reply_message(
+            event.reply_token,
+            TextSendMessage(text="戴致禮老師:\n具有20年網路工程經驗與16年Cisco講師教學經驗，重要的專案與經歷如下：　※美商SITA公司網路系統顧問─負責「中國北京首都機場T3航站樓網路工程建置案」與「台灣桃園機場骨幹網路升級擴建案」　※中華電信訓練所─負責進階網路技術授課兼任講師，已陸續主持IPv6、Multicast、QoS、BGP、MPLS VPN、MPLS TE、IPSec VPN、SSL VPN等研討會　※聚碩科技／智邦科技專長：Cisco大型跨國企業網路與Internet ISP骨幹網路的規劃與建置、各種領域Cisco網路的解決方案，包含：Data Center、Design、Routing & Switching、Security、Service Provider、Voice、Wireless")
+            )
+
+     
+    # 當用戶按下菜單的最右邊按鈕，會輸入more，符合字串more時判斷成立      
+    elif (event.message.text.find('more')!= -1):  
+        # 回覆訊息旋轉門選單
         line_bot_api.reply_message(
             event.reply_token,
             TemplateSendMessage(
-                alt_text="CC103功能選單，為您服務",
+                alt_text="Tibame AWS 功能選單，為您服務",
                 template=button_template_message
             )
         )
         
-    # 收到不認識的訊息時，所給予的回覆    
+    #彩蛋，均在Line官方console做訊息設定，如要相同訊息，亦可寫在程式碼中    
+    elif (event.message.text.find('乃元')!= -1):        
+        pass
+    
+    elif (event.message.text.find('秉鴻')!= -1):        
+        pass
+    
+    elif (event.message.text.find('Travis')!= -1):        
+        pass
+    
+    elif (event.message.text.find('南風')!= -1):        
+        pass
+    
+    elif (event.message.text.find('南風哥')!= -1):        
+        pass
+    
+    elif (event.message.text.find('小天使')!= -1):        
+        pass
+    
+    elif (event.message.text.find('輕鬆一下')!= -1):        
+        pass 
+    
+    elif (event.message.text.find('可惡')!= -1):        
+        pass 
+    
+    elif (event.message.text.find('我問號')!= -1):        
+        pass 
+              
+    # 收到不認識的訊息時，回覆原本的旋轉門菜單    
     else:         
         line_bot_api.reply_message(
             event.reply_token,
             TemplateSendMessage(
-                alt_text="CC103功能選單，為您服務",
+                alt_text="Tibame AWS 功能選單，為您服務",
                 template=button_template_message
             )
         )          
