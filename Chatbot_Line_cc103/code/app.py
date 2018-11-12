@@ -52,9 +52,9 @@ redis = redis.Redis(
 import os 
 
 #擷取EC2裡面的ip位置，主要用於test.py
-ip_location=os.environ.get('IPA_ENV')
+#ip_location=os.environ.get('IPA_ENV')
 #請改成自己律定API Server的container name
-#ip_location='chatbot_api'
+ip_location='chatbot_api'
 
 
 # In[4]:

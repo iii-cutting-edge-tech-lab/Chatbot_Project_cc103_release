@@ -74,13 +74,13 @@ create table assoc_sys_questions (
 	PRIMARY KEY (question_id)
 	)ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-#LOAD DATA LOCAL INFILE  '/docker-entrypoint-initdb.d/SYS.csv'
-#INTO TABLE `chatbot_db`.`assoc_sys_questions`
-#CHARACTER SET UTF8
-#FIELDS TERMINATED BY ',' 
-#ENCLOSED BY '"'
-#LINES TERMINATED BY '\n'
-#IGNORE 1 ROWS;
+LOAD DATA LOCAL INFILE  '/docker-entrypoint-initdb.d/SYS'
+INTO TABLE `chatbot_db`.`assoc_sys_questions`
+CHARACTER SET UTF8
+FIELDS TERMINATED BY '\t' 
+ENCLOSED BY '"'
+LINES TERMINATED BY '\r\n'
+IGNORE 1 ROWS;
 
 
 create user 'read_only_user'@'%' IDENTIFIED BY 'iii';
