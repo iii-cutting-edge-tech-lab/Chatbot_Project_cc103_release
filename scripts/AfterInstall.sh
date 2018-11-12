@@ -12,7 +12,7 @@ cd /home/ec2-user/deploy/Chatbot_Line_cc103/docker_vol/cert-letsencrypt/
 aws s3 cp s3://cc103-deploy-certification/cert-letsencrypt/cc103awsbot.crt .
 aws s3 cp s3://cc103-deploy-certification/cert-letsencrypt/cc103awsbot.key .
 cd /home/ec2-user/deploy/Chatbot_Dev_cc103/mysql_init
-aws s3 cp s3://cc103-deploy-certification/sa .
-aws s3 cp s3://cc103-deploy-certification/dev .
-aws s3 cp s3://cc103-deploy-certification/sys .
+aws s3 cp s3://cc103-deploy-certification/SA .
+aws s3 cp s3://cc103-deploy-certification/Develope .
+aws s3 cp s3://cc103-deploy-certification/SYS .
 exit 0
