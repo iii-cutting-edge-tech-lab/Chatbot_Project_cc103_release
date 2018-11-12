@@ -1,7 +1,7 @@
 version: '3'
 services:
   db:
-    image: mysql:latest 
+    image: mysql:5.7 
     container_name: chatbot_db
     restart: always
 #    ports:
