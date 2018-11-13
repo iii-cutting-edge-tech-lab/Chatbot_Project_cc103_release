@@ -480,6 +480,61 @@ console.setFormatter(formatter)
 logging.getLogger('').addHandler(console)
 
 
+# In[14]:
+
+
+#接口功能：檢視所有使用者資訊
+#接口位置：/users，使用get的http method
+@app.route('/user_back',methods=['GET'])
+def read_user_back():
+    #找出資料庫內的所有user資料
+    cur.execute(
+        'SELECT * FROM chatbot_db.user_back'
+        )
+    #由於是多筆，使用fetchall
+    user = cur.fetchall()
+    #假如一個user都沒
+    if not user:
+        answer = {
+          "status_describe":"query string is incompatible"
+        }
+    else:
+        #裝成矩陣格式
+        answer = []
+        for i in user:
+            result = {
+                "user_id"      : i[0],
+                "user_name"    : i[1],
+                "user_phone"   : i[2],
+                "user_email"   : i[3],
+                "user_context" : i[4],
+                "user_bool"    : i[5],
+                "user_data"    : i[6]
+            }
+            answer.append(result)
+       
+    #轉成json格式
+    return jsonify(answer)
+
+
+# In[15]:
+
+
+@app.route('/manager_page_delete',methods=['post'])
+def user_back_delete():
+    #將傳過來的json檔擷取出來
+    a = request.get_json()
+
+    for i in a :
+        cur.execute('DELETE FROM chatbot_db.user_back WHERE user_id = {}'.format(i) )
+
+        conn.commit()
+
+    result =  { "status_describe":"success delete menu" }
+    
+    return jsonify(result)
+
+
 # In[ ]:
 
 

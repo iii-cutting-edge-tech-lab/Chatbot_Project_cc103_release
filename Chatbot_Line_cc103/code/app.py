@@ -1,7 +1,7 @@
 
 # coding: utf-8
 
-# In[1]:
+# In[ ]:
 
 
 """
@@ -16,7 +16,7 @@
 """
 
 
-# In[2]:
+# In[ ]:
 
 
 #正式上線時要放在dockerfile中
@@ -24,7 +24,7 @@
 #get_ipython().system('pip install line-bot-sdk')
 
 
-# In[3]:
+# In[ ]:
 
 
 """
@@ -57,7 +57,7 @@ import os
 ip_location='chatbot_api'
 
 
-# In[4]:
+# In[ ]:
 
 
 """
@@ -88,7 +88,7 @@ menu_id = secretFile.get("rich_menu_id")
 server_url = secretFile.get("server_url")
 
 
-# In[5]:
+# In[ ]:
 
 
 """
@@ -142,7 +142,7 @@ def hello():
     return 'Hello World!!'
 
 
-# In[6]:
+# In[ ]:
 
 
 '''
@@ -170,7 +170,7 @@ from linebot.models import (
 import requests
 
 
-# In[7]:
+# In[ ]:
 
 
 #宣告並設定推播的 button_template_message (全域變數)
@@ -187,7 +187,8 @@ button_template_message = CarouselTemplate(
                         ),
                         URITemplateAction(
                             label='意見回饋',
-                            uri="https://www.google.com" 
+                            #如果是本地測試，則要使用 ngrok的 url，secret_key中的server_url也要改
+                            uri="https://cc103awsbot.ucloudchain.me/user_back" 
                         ),
                         URITemplateAction(
                             label='Tibame 線上課程',
@@ -236,7 +237,7 @@ button_template_message = CarouselTemplate(
             )
 
 
-# In[8]:
+# In[ ]:
 
 
 #宣告並設定推播的 flex bubble (全域變數)
@@ -398,7 +399,7 @@ flexBubbleContainerJsonString_AWS ="""
   }"""
 
 
-# In[9]:
+# In[ ]:
 
 
 #宣告並設定推播的 flex bubble (全域變數)
@@ -549,7 +550,7 @@ flexBubbleContainerJsonString_Linux ="""
 }"""
 
 
-# In[10]:
+# In[ ]:
 
 
 #宣告並設定推播的 flex bubble (全域變數)
@@ -660,7 +661,7 @@ flexBubbleContainerJsonString_Internet ="""
   }"""
 
 
-# In[11]:
+# In[ ]:
 
 
 #將bubble類型的json 進行轉換變成 Python可理解之類型物件，並將該物件封裝進 Flex Message中
@@ -684,7 +685,7 @@ bubbleContainer_internet= BubbleContainer.new_from_json_dict(json.loads(flexBubb
 flexBubbleSendMessage_Internet =  FlexSendMessage(alt_text="Travis 老師 課程", contents=bubbleContainer_internet)
 
 
-# In[12]:
+# In[ ]:
 
 
 # 告知handler，如果收到FollowEvent，則做下面的方法處理
@@ -747,7 +748,7 @@ def reply_text_and_get_user_profile(event):
     
 
 
-# In[13]:
+# In[ ]:
 
 
 """
@@ -843,7 +844,7 @@ def handle_post_message(event):
         pass
 
 
-# In[14]:
+# In[ ]:
 
 
 """
@@ -988,7 +989,7 @@ def true_answer(a,answer):
         return 'False'
 
 
-# In[15]:
+# In[ ]:
 
 
 '''
@@ -1050,7 +1051,7 @@ def handle_message(event):
         # 回覆訊息
         line_bot_api.reply_message(
             event.reply_token,
-            TextSendMessage(text="李秉鴻老師:\n現於中國一新創企業擔任系統架構師，曾任大型上櫃資訊公司之技術副理、新創企業之雲服務架構工程師、日商大數據暨雲服務後端工程師，擅長雲端應用開發與研究，並有多項雲服務專案開發經驗，獲有AWS Solution Architect - Associate及AWS SysOps Administarator - Associate等國際技術認證。")
+            TextSendMessage(text="李秉鴻老師:\n現為區塊鏈公司之創辦人，曾任北京軟體公司顧問、專案經理、系統架構師、新創企業之雲服務架構工程師、日商大數據暨雲服務後端工程師，擅長雲端應用開發與研究，並有多項雲服務專案開發經驗，獲有AWS Solution Architect - Associate及AWS SysOps Administarator - Associate等國際技術認證。熱愛成就他人，喜悅分享知識，將探索知識的過程轉化成淺白的技術講義做分享，熱愛挑戰問題，將大問題拆解成小問題，逐步帶領學生克服問題，每當看到學生成長，就覺得這個世界總是美好的。")
             )
     
     # 結合旋轉門選單中的"Linux課程"，進到flexbubble選單，按下"陳建村老師簡介"，會有文字"我想看陳建村老師的簡介"的輸入，當符合字串時判斷成立
@@ -1114,6 +1115,12 @@ def handle_message(event):
     
     elif (event.message.text.find('我問號')!= -1):        
         pass 
+    
+    elif (event.message.text.find('CC103')!= -1):        
+        pass
+    
+    elif (event.message.text.find('CC104')!= -1):        
+        pass
               
     # 收到不認識的訊息時，回覆原本的旋轉門菜單    
     else:         
@@ -1124,6 +1131,100 @@ def handle_message(event):
                 template=button_template_message
             )
         )          
+
+
+# In[ ]:
+
+
+get_ipython().system('pip install PyMySQL')
+
+
+# In[ ]:
+
+
+from flask import render_template
+import pymysql
+
+
+# In[ ]:
+
+
+@app.route('/user_back'  , methods=['GET'])
+def user_get_page():
+    return render_template('index.html')
+
+
+# In[ ]:
+
+
+@app.route('/user_back'  , methods=['POST'])
+def user_post_info():
+    if 'bot' in request.form:
+        a = request.form['bot']
+    else :
+        a = 'fales'
+    userdata={
+        'user_name'    : request.form['name'],
+        'user_phone'   : request.form['phone'],
+        'user_email'   : request.form['email'],
+        'user_context' : request.form['context'],
+        'user_bool'    : a
+    }
+    Endpoint = 'http://chatbot_api:5000/web_user_info'
+    Header = {'Content-Type': 'application/json'}
+    Response = requests.post(Endpoint, headers=Header, data=json.dumps(userdata))
+
+    return render_template('thank.html')
+
+
+# In[ ]:
+
+
+@app.route('/login'  , methods=['GET'])
+def login():
+    return render_template('login.html')
+
+
+# In[ ]:
+
+
+@app.route('/login'  , methods=['POST'])
+def page_post():
+    if request.form['button'] == 'Login':
+        if 'user' in request.form:
+            username = request.form['user']
+            if 'passwd' in request.form:
+                password = request.form['passwd']
+            else:
+                passwd = ''
+        else :
+            user = ''
+
+        conn = pymysql.connect(host='db', port=3306, user="root", passwd="iii", db='chatbot_db',charset='utf8mb4')
+        cur = conn.cursor()
+        log ='SELECT * FROM chatbot_db.user_login WHERE username="{}" and password= "{}"'.format(username,password)
+        cur.execute(log)
+        data = cur.fetchone()
+        if data is None:
+            return render_template('login.html')
+        else :
+            tmp = requests.get("http://chatbot_api:5000/user_back")
+            data = tmp.json()
+            return render_template('manage.html',data=data)
+        return render_template('login.html')
+    if request.form['button'] == 'Delete':
+        a = []
+        for i in request.form:
+            if i.isdigit():
+                a.append(i)
+        json_string = json.dumps(a)
+        Endpoint = 'http://chatbot_api:5000/manager_page_delete'
+        Header = {'Content-Type': 'application/json'}
+        Response = requests.post(Endpoint, headers=Header, data=json_string)
+        tmp = requests.get("http://chatbot_api:5000/user_back")
+        data = tmp.json()
+        return render_template('manage.html',data=data)
+    return render_template('login.html')
 
 
 # In[ ]:
