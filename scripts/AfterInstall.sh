@@ -15,4 +15,8 @@ cd /home/ec2-user/deploy/Chatbot_Dev_cc103/mysql_init
 aws s3 cp s3://cc103-deploy-certification/SA .
 aws s3 cp s3://cc103-deploy-certification/Develope .
 aws s3 cp s3://cc103-deploy-certification/SYS .
+cd /home/ec2-user/deploy/Chatbot_Dev_cc103
+aws s3 cp s3://cc103-devops/mysql_data.tar .
+sudo tar xvf mysql_data.tar
+sudo rm  mysql_data.tar
 exit 0
