@@ -19,5 +19,5 @@ aws s3 cp s3://cc103-deploy-certification/SYS .
 #aws s3 cp s3://cc103-devops/mysql_data.tar .
 #sudo tar xvf mysql_data.tar
 #sudo rm mysql_data.tar
-#sudo chown ec2-user:ec2-user -R mysql_data/
+sudo chown ec2-user:ec2-user -R /home/ec2-user/deploy/Chatbot_Dev_cc103/mysql_data/
 exit 0
