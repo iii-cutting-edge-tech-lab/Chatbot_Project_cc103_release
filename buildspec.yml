@@ -23,5 +23,3 @@ phases:
     - docker push $URI/api:latest
     - docker push $URI/jupyter:$TAG
     - docker push $URI/api:$TAG
-artifacts:
-  files: buildspec.json
