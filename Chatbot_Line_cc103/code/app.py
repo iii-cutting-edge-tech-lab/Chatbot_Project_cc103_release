@@ -1022,7 +1022,7 @@ def handle_message(event):
         total = redis.hget(user_profile,"total")
         # 將上面的變數包裝起來                          
         reply_list = [
-            TextSendMessage(text="各類回答紀錄\nsa:%s/100\ndeveloper:%s/100\nsysops:%s/100" % (sa_qid,sys_qid,dev_qid) ),
+            TextSendMessage(text="各類回答紀錄\nsa:%s/100\ndeveloper:%s/100\nsysops:%s/100" % (sa_qid,dev_qid,sys_qid) ),
             TextSendMessage(text="總共答對 (%s)題\n總共回答 (%s)題" % (correct,total))
         ]
         # 回覆訊息
