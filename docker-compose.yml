@@ -23,7 +23,7 @@ services:
       - ./Chatbot_Dev_cc103/code:/home/jovyan/work/
     command: python /home/jovyan/work/code.py
   redis:
-    image: redis:4.0.11
+    image: redis:latest
     container_name: chatbot_redis
     volumes:
       - ./Chatbot_Line_cc103/redis/data:/data
